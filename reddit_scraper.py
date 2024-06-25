@@ -36,14 +36,6 @@ def search_reddit_for_j1_experiences(subreddits, keywords, post_limit=100):
                 })
     return results
 
-def create_dataframe_from_results(results):
-    """
-    Create a pandas DataFrame from the list of results.
-
-    Parameters:
-    - results: list of dicts with search result data.
-    """
-    return pd.DataFrame(results)
 
 # Define your subreddits and keywords
 subreddits = ['immigration', 'AskAnAmerican',
@@ -84,10 +76,9 @@ keywords = [
 
 # Fetch results and create a DataFrame
 results = search_reddit_for_j1_experiences(subreddits, keywords)
-df = create_dataframe_from_results(results)
+df = pd.DataFrame(results)
 
 # Save the DataFrame to a CSV file
 file_path = '/Users/albliu/Downloads/j1_visa_experiences.csv'
 df.to_csv(file_path, index=False)
-print("DataFrame saved successfully to CSV.")
 print(df)
