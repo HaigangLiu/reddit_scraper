@@ -79,4 +79,20 @@ To gain insights into the structure and relationships within the clustered data,
 ## Summarize Clusters with Large Language Models
 After clustering the text data, large language models (LLMs) are employed to summarize the content of each cluster. By leveraging the capabilities of models like GPT-4, we can generate concise and coherent summaries that capture the main themes or topics within each cluster. 
 
+An illustration of how LLMs can be used to summarize the content of a cluster is shown below:
+
+```python
+text = clustered_df[clustered_df['cluster'] == 0]['text'].values
+text = ' '.join(text)
+
+response = openai.Completion.create(
+  engine="text-davinci-004",  # This is the identifier for GPT-4
+  prompt=text,
+  max_tokens=100
+)
+```
+```
+Output:
+The main theme across these sentences is the depiction of daily life and key infrastructural and architectural achievements in ancient Rome, highlighting the city's vibrancy, technological advancements, and significant political and social activities.
+```
 
