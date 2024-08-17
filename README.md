@@ -82,8 +82,10 @@ After clustering the text data, large language models (LLMs) are employed to sum
 An illustration of how LLMs can be used to summarize the content of a cluster is shown below:
 
 ```python
+import openai
 text = clustered_df[clustered_df['cluster'] == 0]['text'].values
 text = ' '.join(text)
+prompt = f"The main theme across the below sentences is: {text}"
 
 response = openai.Completion.create(
   engine="text-davinci-004",  # This is the identifier for GPT-4
@@ -95,4 +97,3 @@ response = openai.Completion.create(
 Output:
 The main theme across these sentences is the depiction of daily life and key infrastructural and architectural achievements in ancient Rome, highlighting the city's vibrancy, technological advancements, and significant political and social activities.
 ```
-
