@@ -2,8 +2,7 @@
 
 ## Methodology Overview
 
-To examine topics related to J1 students on Reddit, we extracted embeddings from Redditor comments using models like BERT. These embeddings were then clustered using algorithms such as DBSCAN. We analyzed the different clusters to identify common themes. The final step involved using a large language model (LLM) to refine these themes based on our domain knowledge.
-
+To examine topics related to J1 students on Reddit, we extracted embeddings from Reddit comments using models like BERT. These embeddings were then clustered using algorithms such as DBSCAN. We analyzed the different clusters to identify common themes. The final step involved using a large language model (LLM) to summarize the content of each cluster.
 
 As an illustration, we use three categories: **Ancient Rome**, **Modern Video Games**, and **Chess**. These categories are selected because they have distinct and clear central themes, or "centroids," which makes them ideal for demonstrating the effectiveness of our clustering approach. 
 
