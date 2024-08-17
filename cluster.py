@@ -1,13 +1,16 @@
-from sklearn.manifold import TSNE
-import random
 import pandas as pd
+import numpy as np
+
 from sklearn.cluster import KMeans, DBSCAN
+from sklearn.manifold import TSNE
 from sklearn.metrics import confusion_matrix, classification_report
 from scipy.stats import mode
-import numpy as np
+
 from transformers import AutoTokenizer, AutoModel, T5EncoderModel
 import torch
+
 import matplotlib.pyplot as plt
+import random
 
 # available models
 available_models = [
@@ -87,8 +90,6 @@ def get_embeddings(sentences, model_name='bert-base-uncased'):
 
     return output_embeddings
 
-
-# Example usage
 
 def get_kmeans_clustering(embeddings, num_clusters):
     kmeans = KMeans(n_clusters=num_clusters, random_state=0)
@@ -238,4 +239,3 @@ if RUN_tSNE:
     # Customize the scatter points further, such as changing their sizes
     scatter.set_sizes([50 for _ in range(len(tsne_results))])  # Increase the size of all points
     scatter.set_cmap('plasma')
-
