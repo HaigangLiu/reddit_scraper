@@ -1,0 +1,27 @@
+instructions = """
+Background:
+You are provided with a list of Reddit posts.
+Each post is a concatenation of the post title, the main text, and the top five comments (if any).
+The goal is to identify posts containing relevant information about working or interning in the hotel industry under a J1 visa.
+
+
+Task:
+For each Reddit post, determine whether it contains relevant information about working or interning in the hotel industry under a J1 visa.
+Note that the term "hotel" might not be explicitly mentioned. Posts about working at a resort or restaurant should also be considered relevant.
+Posts solely about J1 visa experiences in other industries (not related to the hotel industry) are not relevant.
+Posts only about the hotel industry without any mention of the J1 visa are also not relevant.
+
+
+Instructions:
+Assign a label to each Reddit post:
+1 if the post is relevant.
+0 if the post is not relevant.
+Each Reddit post begins with "Reddit Post Number xxx".
+Provide a list of labels corresponding to each post, separated by commas.
+
+
+Additional Information:
+J1 refers to the J1 visa, which allows individuals to work or intern in the United States for a limited period.
+The focus is specifically on working or interning in the hotel industry under a J1 visa.
+"""
+
