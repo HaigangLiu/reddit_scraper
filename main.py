@@ -1,11 +1,11 @@
 import numpy as np
 from reddit_scraper import reddit_scraper_for_j1
 import pandas as pd
-from cluster import get_dbscan_clustering, get_embeddings, get_kmeans_clustering
+from cluster import get_dbscan_clustering, get_embeddings, get_kmeans_clustering, get_hierarchical_clustering
 import pickle
 
 RUN_SCRAPER = False  # Set to True to get fresh posts from Reddit
-RUN_EMBEDDINGS = True  # Set to True to get embeddings from the text
+RUN_EMBEDDINGS = False  # Set to True to get embeddings from the text
 RUN_CLUSTERING = True  # Set to True to run clustering on the embeddings
 
 FILE_PATH = '/Users/albliu/Downloads/j1_visa_20241007_LLM_label.csv'
@@ -81,15 +81,19 @@ def run_clustering(embedding_from_text,
     df = df.reset_index(drop=True)
 
     labels_1 = get_dbscan_clustering(embedding_from_text,
-                                     eps=3,
-                                     min_samples=3)
+                                     eps=2.5,
+                                     min_samples=5)
     labels_2 = get_dbscan_clustering(embedding_from_text,
-                                     eps=2,
-                                     min_samples=3)
+                                     eps=3,
+                                     min_samples=5)
 
     labels_3, _ = get_kmeans_clustering(embedding_from_text, num_clusters=3)
     labels_4, _ = get_kmeans_clustering(embedding_from_text, num_clusters=5)
     labels_5, _ = get_kmeans_clustering(embedding_from_text, num_clusters=7)
+
+    labels_6 = get_hierarchical_clustering(embedding_from_text, num_clusters=3)
+    labels_7 = get_hierarchical_clustering(embedding_from_text, num_clusters=5)
+    labels_8 = get_hierarchical_clustering(embedding_from_text, num_clusters=7)
 
     # Assign labels to DataFrame
     df['label_dbscan_v1'] = labels_1
@@ -97,13 +101,20 @@ def run_clustering(embedding_from_text,
     df['label_kmeans_3_clusters'] = labels_3
     df['label_kmeans_5_clusters'] = labels_4
     df['label_kmeans_7_clusters'] = labels_5
+    df['label_hierarchical_3_clusters'] = labels_6
+    df['label_hierarchical_5_clusters'] = labels_7
+    df['label_hierarchical_7_clusters'] = labels_8
 
     # Display value counts for each clustering label
     for k in ['label_dbscan_v1',
               'label_dbscan_v2',
               'label_kmeans_3_clusters',
               'label_kmeans_5_clusters',
-              'label_kmeans_7_clusters']:
+              'label_kmeans_7_clusters',
+              'label_hierarchical_3_clusters',
+              'label_hierarchical_5_clusters',
+              'label_hierarchical_7_clusters']:
+
         print(f"{k} value counts:")
         print(df[k].value_counts())
 
