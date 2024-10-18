@@ -1,14 +1,11 @@
 import pandas as pd
 import numpy as np
-
-from sklearn.cluster import KMeans, DBSCAN
+from sklearn.cluster import KMeans, DBSCAN, AgglomerativeClustering
 from sklearn.manifold import TSNE
 from sklearn.metrics import confusion_matrix, classification_report
 from scipy.stats import mode
-
-from transformers import AutoTokenizer, AutoModel, T5EncoderModel
 import torch
-
+from transformers import AutoTokenizer, AutoModel, T5EncoderModel
 import matplotlib.pyplot as plt
 import random
 
@@ -65,13 +62,21 @@ def create_sample_phrases():
     return labeled_phrases
 
 
-def get_embeddings(sentences, model_name='bert-base-uncased'):
+
+def get_embeddings(sentences, model_name='bert-base-uncased', device=None):
+    # Set the device to MPS if available, otherwise use CPU
+    if device is None:
+        if torch.backends.mps.is_available():
+            device = torch.device("mps")
+        else:
+            device = torch.device("cpu")
+
     # Initialize the tokenizer and model
     tokenizer = AutoTokenizer.from_pretrained(model_name)
     if "t5" in model_name:
-        model = T5EncoderModel.from_pretrained(model_name)
+        model = T5EncoderModel.from_pretrained(model_name).to(device)
     else:
-        model = AutoModel.from_pretrained(model_name)
+        model = AutoModel.from_pretrained(model_name).to(device)
 
     # Set the pad_token for tokenizers that need it (e.g., GPT-2)
     if tokenizer.pad_token is None:
@@ -81,12 +86,20 @@ def get_embeddings(sentences, model_name='bert-base-uncased'):
     inputs = tokenizer(sentences,
                        return_tensors="pt",
                        padding=True,
-                       truncation=True)
+                       truncation=True,
+                       max_length=512)  # Limit input length to avoid memory issues
+
+    # Move inputs to the same device as the model
+    inputs = {key: value.to(device) for key, value in inputs.items()}
 
     # Generate embeddings
     with torch.no_grad():
         outputs = model(**inputs)
-        output_embeddings = outputs.last_hidden_state.mean(dim=1)  # Mean pooling
+        # Mean pooling
+        output_embeddings = outputs.last_hidden_state.mean(dim=1)
+
+    # Move embeddings back to CPU if needed
+    output_embeddings = output_embeddings.cpu()
 
     return output_embeddings
 
@@ -96,10 +109,15 @@ def get_kmeans_clustering(embeddings, num_clusters):
     kmeans.fit(embeddings)
     return kmeans.labels_, kmeans.cluster_centers_
 
-def get_dbscan_clustering(embeddings, eps=0.5, min_samples=5):
+def get_dbscan_clustering(embeddings, eps=1.2, min_samples=15):
     dbscan = DBSCAN(eps=eps, min_samples=min_samples)
     dbscan.fit(embeddings)
     return dbscan.labels_  # DBSCAN labels
+
+def get_hierarchical_clustering(embeddings, num_clusters):
+    hierarchical = AgglomerativeClustering(n_clusters=num_clusters)
+    hierarchical.fit(embeddings)
+    return hierarchical.labels_
 
 def evaluate_clustering(labels_pred, labels_true,
                         print_report=True,
@@ -181,61 +199,61 @@ def plot_tsne(tsne_results, labels=None):
     plt.show()
     return ax
 
+if __name__ == '__main__':
+    # generate sample data and label
+    labeled_sentences = create_sample_phrases()
+    sentences, true_labels = zip(*labeled_sentences)
+    label_mapping = {'Ancient Rome': 0, 'Music': 1, 'Chess': 2}
+    numerical_true_labels = [label_mapping[label] for label in true_labels]
 
-# generate sample data and label
-labeled_sentences = create_sample_phrases()
-sentences, true_labels = zip(*labeled_sentences)
-label_mapping = {'Ancient Rome': 0, 'Music': 1, 'Chess': 2}
-numerical_true_labels = [label_mapping[label] for label in true_labels]
+    PRINT_EMBEDDINGS = True
+    if PRINT_EMBEDDINGS:
+        for model in ['bert-base-uncased']:
+            print(f"Model: {model}")
+            embeddings = get_embeddings(sentences, model_name=model)
+            print(embeddings)
+            print(embeddings.shape)
 
-PRINT_EMBEDDINGS = True
-if PRINT_EMBEDDINGS:
-    for model in ['bert-base-uncased']:
-        print(f"Model: {model}")
-        embeddings = get_embeddings(sentences, model_name=model)
-        print(embeddings)
-        print(embeddings.shape)
+    RUN_KMEANS = False
+    RUN_tSNE = True
+    RUN_DBSCAN = False
+    # Evaluate clustering
+    if RUN_KMEANS:
+        for model in ['bert-base-uncased']:
+            print(f"\nEvaluating clustering for model: {model}")
+            labels, _ = get_kmeans_clustering(get_embeddings(sentences,
+                                                             model_name=model),
+                                              num_clusters=3)
+            labels = align_cluster_labels(labels, numerical_true_labels)
 
-RUN_KMEANS = False
-RUN_tSNE = True
-RUN_DBSCAN = False
-# Evaluate clustering
-if RUN_KMEANS:
-    for model in ['bert-base-uncased']:
-        print(f"\nEvaluating clustering for model: {model}")
-        labels, _ = get_kmeans_clustering(get_embeddings(sentences,
-                                                         model_name=model),
-                                          num_clusters=3)
-        labels = align_cluster_labels(labels, numerical_true_labels)
+            evaluate_clustering(labels, numerical_true_labels,
+                                print_confusion=True,
+                                print_report=False)
 
-        evaluate_clustering(labels, numerical_true_labels,
-                            print_confusion=True,
-                            print_report=False)
+    if RUN_DBSCAN:
+        for model in ['bert-base-uncased']:
+            print(f"\nEvaluating clustering for model: {model}")
+            labels = get_dbscan_clustering(get_embeddings(sentences, model_name=model), eps=0.5, min_samples=5)
+            labels = align_cluster_labels(labels, numerical_true_labels)
 
-if RUN_DBSCAN:
-    for model in ['bert-base-uncased']:
-        print(f"\nEvaluating clustering for model: {model}")
-        labels = get_dbscan_clustering(get_embeddings(sentences, model_name=model), eps=0.5, min_samples=5)
-        labels = align_cluster_labels(labels, numerical_true_labels)
+            # Filtering noise points, if needed
+            filtered_labels = labels[labels != -1]
+            filtered_true_labels = np.array(numerical_true_labels)[labels != -1]
 
-        # Filtering noise points, if needed
-        filtered_labels = labels[labels != -1]
-        filtered_true_labels = np.array(numerical_true_labels)[labels != -1]
+            evaluate_clustering(filtered_labels, filtered_true_labels, print_confusion=True, print_report=False)
 
-        evaluate_clustering(filtered_labels, filtered_true_labels, print_confusion=True, print_report=False)
+    if RUN_tSNE:
+        # Visualize the embeddings using t-SNE
+        embeddings = get_embeddings(sentences,
+                                    model_name='bert-base-uncased')
+        tsne_results = apply_tsne(embeddings,
+                                  perplexity=1.5,
+                                  n_components=2,
+                                  verbose=1,
+                                  n_iter=1000,
+                                  )
+        ax, scatter = plot_tsne(tsne_results, labels=sentences)
 
-if RUN_tSNE:
-    # Visualize the embeddings using t-SNE
-    embeddings = get_embeddings(sentences,
-                                model_name='bert-base-uncased')
-    tsne_results = apply_tsne(embeddings,
-                              perplexity=1.5,
-                              n_components=2,
-                              verbose=1,
-                              n_iter=1000,
-                              )
-    ax, scatter = plot_tsne(tsne_results, labels=sentences)
-
-    # Customize the scatter points further, such as changing their sizes
-    scatter.set_sizes([50 for _ in range(len(tsne_results))])  # Increase the size of all points
-    scatter.set_cmap('plasma')
+        # Customize the scatter points further, such as changing their sizes
+        scatter.set_sizes([50 for _ in range(len(tsne_results))])  # Increase the size of all points
+        scatter.set_cmap('plasma')
